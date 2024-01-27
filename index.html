@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Juego Especial</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0e4d7;
+        }
+
+        #juegoContenedor {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            width: 90%;
+            max-width: 320px;
+            margin-bottom: 20px;
+        }
+
+        .tarjeta {
+            height: 80px;
+            background-color: #f9d5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            color: transparent;
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        .tarjeta.revelada,
+        .tarjeta.coincidente {
+            color: #444;
+            transform: scale(1.1);
+        }
+
+        #invitation {
+            display: none;
+            text-align: center;
+            font-size: 18px;
+            color: #d81159;
+        }
+
+        #confeti {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background-color: #ff69b4;
+            opacity: 0.6;
+            border-radius: 50%;
+        }
+
+        @keyframes confeti-animacion {
+            0% {
+                transform: translateY(-100vh);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        #temporizador {
+            font-size: 24px;
+            color: #d81159;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="temporizador">00:30</div>
+    <div id="juegoContenedor"></div>
+    <div id="invitation">¡Has conseguido una cena conmigo! 🎉</div>
+
+    <script>
+        const iconos = ["❤️", "🌹", "🍀", "🦄", "🎈", "🎊", "❤️", "🌹", "🍀", "🦄", "🎈", "🎊"];
+        let tarjetasReveladas = [];
+        let paresEmparejados = 0;
+        let gameStarted = false;
+        let temporizadorId;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createCard(icono) {
+            const tarjeta = document.createElement("div");
+            tarjeta.className = "tarjeta";
+            tarjeta.textContent = icono;
+            tarjeta.onclick = () => revelarCard(tarjeta, icono);
+            return tarjeta;
+        }
+
+        function revelarCard(tarjeta, icono) {
+            if (tarjeta.classList.contains("revelada") || tarjetasReveladas.length === 2) {
+                return;
+            }
+
+            tarjeta.classList.add("revelada");
+            tarjetasReveladas.push({ tarjeta, icono });
+
+            if (tarjetasReveladas.length === 2) {
+                setTimeout(verificarCoincidencia, 500);
+            }
+        }
+
+        function verificarCoincidencia() {
+            const [primeraTarjeta, segundaTarjeta] = tarjetasReveladas;
+
+            if (primeraTarjeta.icono === segundaTarjeta.icono) {
+                primeraTarjeta.tarjeta.classList.add("coincidente");
+                segundaTarjeta.tarjeta.classList.add("coincidente");
+                paresEmparejados++;
+                if (paresEmparejados === iconos.length / 2) {
+                    document.getElementById("invitation").style.display = "block";
+                    iniciarConfeti();
+                }
+            } else {
+                primeraTarjeta.tarjeta.classList.remove("revelada");
+                segundaTarjeta.tarjeta.classList.remove("revelada");
+            }
+
+            tarjetasReveladas = [];
+        }
+
+        function iniciarConfeti() {
+            const totalConfeti = 500;
+            const delay = 6; // Duración más corta de la animación para cada confeti
+
+            document.getElementById("temporizador").style.display = "none";
+            for (let i = 0; i < totalConfeti; i++) {
+                setTimeout(() => {
+                    const confeti = document.createElement('div');
+                    confeti.classList.add('confeti');
+                    confeti.style.left = Math.random() * window.innerWidth + 'px';
+                    confeti.style.animation = `confeti-animacion ${delay}s linear infinite`;
+                    document.body.appendChild(confeti);
+                }, (delay / totalConfeti) * i * 1000); // Emite confeti en intervalos regulares
+            }
+        }
+
+        function inicializarJuego() {
+            shuffleArray(iconos);
+            const juegoContenedor = document.getElementById("juegoContenedor");
+            iconos.forEach(icono => {
+                juegoContenedor.appendChild(createCard(icono));
+            });
+            iniciarTemporizador();
+        }
+
+        function iniciarTemporizador() {
+            let tiempoRestante = 30;
+            temporizadorId = setInterval(() => {
+                if (tiempoRestante <= 0) {
+                    clearInterval(temporizadorId);
+                    finDelJuego();
+                } else {
+                    const minutos = String(Math.floor(tiempoRestante / 60)).padStart(2, '0');
+                    const segundos = String(tiempoRestante % 60).padStart(2, '0');
+                    document.getElementById("temporizador").textContent = `${minutos}:${segundos}`;
+                    tiempoRestante--;
+                }
+            }, 1000);
+        }
+
+        function finDelJuego() {
+            if (paresEmparejados !== iconos.length / 2) {
+                document.getElementById("juegoContenedor").style.display = "none";
+                document.getElementById("temporizador").style.display = "none";
+                document.getElementById("invitation").innerHTML = "Se ha acabado el tiempo. <br> Como premio de consolación te invito a salir a comer 🎉";
+                document.getElementById("invitation").style.display = "block";
+                iniciarConfeti();
+            }
+        }
+
+        inicializarJuego();
+    </script>
+</body>
+
+</html>
